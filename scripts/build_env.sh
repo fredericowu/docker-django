@@ -1,5 +1,5 @@
 #!/bin/sh
-. /DOCKER_DJANGO
+. /.env
 
 set -ex
 apk update

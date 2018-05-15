@@ -4,7 +4,7 @@ services:
     image: nginx:latest
     container_name: nginx01
     ports:
-      - "7777:7777"
+      - "${LISTEN_PORT}:${LISTEN_PORT}"
     volumes:
       - ./src:/src
       - ./nginx_config:/etc/nginx/conf.d
@@ -17,7 +17,7 @@ services:
       - ./src:/src
       - ./nginx_config:/nginx_config
     expose:
-      - "7777"
+      - "${LISTEN_PORT}"
 #    links:
 #      - redis
 #  redis:

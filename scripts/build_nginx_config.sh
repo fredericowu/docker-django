@@ -1,5 +1,5 @@
 #!/bin/sh
-. /DOCKER_DJANGO
+. /.env
 . /venv/bin/activate
 
 eval $(python /src/$DJANGO_ROOT/manage.py shell < /scripts/django_get_vars.py)

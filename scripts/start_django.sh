@@ -1,5 +1,5 @@
 #!/bin/sh
-. /DOCKER_DJANGO
+. /.env
 . /venv/bin/activate
 
 cd /src/
