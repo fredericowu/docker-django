@@ -7,7 +7,7 @@ services:
       - "7777:7777"
     volumes:
       - ./src:/src
-      - ./src/nginx_config:/etc/nginx/conf.d
+      - ./nginx_config:/etc/nginx/conf.d
     depends_on:
       - web
   web:
@@ -15,6 +15,7 @@ services:
     container_name: web01
     volumes:
       - ./src:/src
+      - ./nginx_config:/nginx_config
     expose:
       - "7777"
 #    links:
