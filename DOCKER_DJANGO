@@ -1,0 +1,9 @@
+GIT_REPO="https://github.com/fredericowu/cognitivo"
+PIP_REQUIREMENTS="requirements.txt"
+# Path to Django project root where manage.py is located
+DJANGO_ROOT="project"
+# DOT path to gunicorn
+DJANGO_WSGI="cognitivo.wsgi"
+APK_ADD=""
+LISTEN_IP="0.0.0.0"
+LISTEN_PORT=7777
