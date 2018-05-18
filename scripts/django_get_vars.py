@@ -1,49 +1,81 @@
 from django.conf import settings
 
-#CELERY_BROKER_URL
-#BROKER_URL
-#CELERY_BROKER_URL = 'redis://redis:6379/0'
-#BROKER_URL = 'amqp://vcz:vczap@' + API_TCP_SERVER_HOST + ':5672//'
-
-
-dir_settings = dir(settings)
-celery_vars = [
-	'CELERY_BROKER_URL',
-	'BROKER_URL',
-]
-
-BROKER_URL = ''
-BROKER_PORT = '0'
-BROKER_PROTOCOL = ''
-
-for item in celery_vars:
-	if item in dir_settings:
-		BROKER_URL = eval("settings.{0}".format(item))
-		break
-
-
-try:
-	protocol, addr = BROKER_URL.split("://")
-	BROKER_PROTOCOL = protocol.lower()
-except:
-	protocol = ''
-	addr = ''
-
-if ':' in addr:
-	addr_s = addr.split(":")
-	port = addr_s[-1].split("/")[0]
+def get_broker():
+	dir_settings = dir(settings)
+	celery_vars = [
+		'CELERY_BROKER_URL',
+		'BROKER_URL',
+	]
+	BROKER_URL = ''
+	BROKER_PORT = '0'
+	BROKER_PROTOCOL = ''
+	for item in celery_vars:
+		if item in dir_settings:
+			BROKER_URL = eval("settings.{0}".format(item))
+			break
 	try:
-		BROKER_PORT = str(int(port))
+		protocol, addr = BROKER_URL.split("://")
+		BROKER_PROTOCOL = protocol.lower()
 	except:
-		pass
+		protocol = ''
+		addr = ''
+	if ':' in addr:
+		addr_s = addr.split(":")
+		port = addr_s[-1].split("/")[0]
+		try:
+			BROKER_PORT = str(int(port))
+		except:
+			pass
+	result = {
+		'BROKER_URL': BROKER_URL,
+		'BROKER_PORT': BROKER_PORT,
+		'BROKER_PROTOCOL': BROKER_PROTOCOL,
+	}
+	return result
 
-output = [
-	"{0}='{1}'\n".format('STATIC_URL', settings.STATIC_URL),
-	"{0}='{1}'\n".format('STATIC_ROOT', settings.STATIC_ROOT),
-	"{0}='{1}'\n".format('BROKER_URL', BROKER_URL),
-	"{0}='{1}'\n".format('BROKER_PROTOCOL', BROKER_PROTOCOL),
-	"{0}={1}\n".format('BROKER_PORT', BROKER_PORT),
-]	
+
+def get_database():
+	try:
+		# TODO: Support many
+		db = settings.DATABASES['default']
+	except:
+		db = {}
+	keys = [
+		'ENGINE',
+		'NAME',
+		'USER',
+		'HOST',
+		'PORT',
+	]
+	result = {}
+	for key in keys:
+		result_key = "DB_{0}".format(key)
+		if key in db:
+			result[result_key] = db[key]
+		else:
+			result[result_key] = ''
+	result['DB_ENGINE'] = result['DB_ENGINE'].split(".")[-1]
+	return result
+
+
+def format_dict(d):
+	result = []
+	integers = [ 'BROKER_PORT', ]
+	for k in d:
+		if k in integers:
+			result.append("{0}={1}\n".format(k, d[k]))
+		else:
+			result.append("{0}='{1}'\n".format(k, d[k]))
+	return result	
+
+output = [ "{0}='{1}'\n".format('STATIC_URL', settings.STATIC_URL), "{0}='{1}'\n".format('STATIC_ROOT', settings.STATIC_ROOT) ]	
+
+broker = get_broker()
+db = get_database()
+
+output += format_dict(broker)
+output += format_dict(db)
+
 
 with open("/src/django_env", "w") as f:
 	for o in output:
