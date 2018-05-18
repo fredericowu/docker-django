@@ -1,4 +1,4 @@
-FROM python:3.6-alpine
+FROM python:alpine
 ENV PYTHONUNBUFFERED 1
 ENV C_FORCE_ROOT true
 RUN mkdir /src

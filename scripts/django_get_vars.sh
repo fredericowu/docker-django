@@ -2,5 +2,5 @@
 . /.env
 . /venv/bin/activate
 
-python /src/$DJANGO_ROOT/manage.py shell < /scripts/django_get_vars.py
+python /src/$DJANGO_ROOT/manage.py shell < /scripts/django_get_vars.py > /dev/null 2>&1
 

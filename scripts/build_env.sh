@@ -3,7 +3,7 @@
 
 set -ex
 apk update
-apk add git
+apk add git postgresql-dev gcc musl-dev
 python3.6 -m venv /venv
 . /venv/bin/activate
 pip install -U pip

@@ -16,7 +16,7 @@ function get_container_id() {
 }
 
 function docker_exec() {
-	docker exec -it --tty=false $1 $2
+	docker exec -it --tty=false $1 "$2" 2>&1
 }
 
 
@@ -63,7 +63,13 @@ function build_broker() {
 	change_env BROKER_PROTOCOL $BROKER_PROTOCOL
 }
 
-function build_initial () {
+function load_django_env() {
+	container_id=$(get_container_id django)
+	eval $(docker_exec $container_id /scripts/django_get_vars.sh)
+	. src/django_env
+}
+
+function build () {
 	# avoid errors
         change_env BROKER_PORT 0
         change_env BROKER_PROTOCOL ""
@@ -74,16 +80,28 @@ function build_initial () {
 	sleep 5
 	echo "Waiting django to start"
 	container_id=$(get_container_id django)
-	while [ "$(docker_exec $container_id 'ps | grep gunicorn')" = "" ]; do
-	        sleep 1
+	while [ "$(docker_exec $container_id ps | grep gunicorn | grep -v grep | grep -v pip)" = "" ]; do
+		sleep 1
 	done
-	sleep 5
 
-	eval $(docker_exec $container_id /scripts/django_get_vars.sh)
+	load_django_env
 	docker stop $container_id
-
 	build_nginx
 	build_broker
+
+}
+
+function dockers_stop() {
+	echo "Stopping nginx..."
+	docker stop $(get_container_id nginx)
+
+	echo "Stopping django..."
+	docker stop $(get_container_id django)
+
+	if [ ! -z "$BROKER_PROTOCOL" ]; then
+		echo "Stopping message broker..."
+		docker stop $(get_container_id broker-$BROKER_PROTOCOL)
+	fi
 
 }
 
@@ -92,8 +110,16 @@ case "$1" in
 		dockers_up;
 	;;
 
-	build-initial)
-		build_initial;
+	start)
+		dockers_up;
+	;;
+
+	stop)
+		dockers_stop;
+	;;
+
+	build)
+		build;
 	;;
 
 	*)

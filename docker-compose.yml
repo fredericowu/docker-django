@@ -9,19 +9,21 @@ services:
       - ./src:/src
       - ./nginx_config:/etc/nginx/conf.d
     depends_on:
-      - web
-  web:
+      - django
+  django:
     build: .
-    container_name: web01
+    container_name: django01
     volumes:
       - ./src:/src
       - ./nginx_config:/nginx_config
     expose:
       - "${LISTEN_PORT}"
-#    links:
-#      - redis
-#  redis:
-#    image: redis:latest
-#    container_name: redis01
-#    ports:
-#     - '6379:6379'
+  broker-redis:
+    image: redis:latest
+    container_name: broker-redis01
+    ports:
+     - "${BROKER_PORT}:${BROKER_PORT}"
+  db-postgres:
+    image: postgres:latest
+    container_name: db-postgres01
+
