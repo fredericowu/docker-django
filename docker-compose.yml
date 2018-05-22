@@ -1,18 +1,24 @@
-version: '2'  
+version: '3'  
+# adicionar networks pra todo mundo, coloca djangonet
+
 services:  
   nginx:
     image: nginx:latest
     container_name: nginx01
     ports:
       - "${LISTEN_PORT}:${LISTEN_PORT}"
+    depends_on:
+      - django
+    networks:
+      - django
     volumes:
       - ./src:/src
       - ./nginx_config:/etc/nginx/conf.d
-    depends_on:
-      - django
   django:
     build: .
     container_name: django01
+    networks:
+      - django
     volumes:
       - ./src:/src
       - ./nginx_config:/nginx_config
@@ -23,7 +29,24 @@ services:
     container_name: broker-redis01
     ports:
      - "${BROKER_PORT}:${BROKER_PORT}"
+    networks:
+      - django
   db-postgres:
     image: postgres:latest
     container_name: db-postgres01
+    volumes:
+      - ./database:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_DB: "${DB_NAME}"
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    networks:
+      django:
+        aliases:
+          - "${DB_HOST}"
 
+networks:
+  django:
+    driver: bridge

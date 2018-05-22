@@ -46,6 +46,7 @@ def get_database():
 		'USER',
 		'HOST',
 		'PORT',
+		'PASSWORD',
 	]
 	result = {}
 	for key in keys:
@@ -60,7 +61,10 @@ def get_database():
 
 def format_dict(d):
 	result = []
-	integers = [ 'BROKER_PORT', ]
+	integers = [
+		'BROKER_PORT',
+		'DB_HOST',
+	]
 	for k in d:
 		if k in integers:
 			result.append("{0}={1}\n".format(k, d[k]))
