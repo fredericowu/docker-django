@@ -44,6 +44,11 @@ function docker_exec() {
 
 function build_nginx() {
 	STATIC_ROOT_CONF=""
+
+	if [ "${STATIC_ROOT:0:2}" = "./" ]; then
+		STATIC_ROOT="/src/"$DJANGO_ROOT"/"${STATIC_ROOT:2}
+	fi
+
 	if [ ! -z "$STATIC_ROOT" ] && [ ! -z "$STATIC_URL" ]; then
 		STATIC_ROOT_CONF="location $STATIC_URL { autoindex on; alias $STATIC_ROOT/; }"
 	fi
@@ -88,8 +93,6 @@ function build_broker() {
 }
 
 function load_django_env() {
-	container_id=$(get_container_id django)
-	eval $(docker_exec $container_id /scripts/django_get_vars.sh)
 	. src/django_env
 }
 
@@ -100,12 +103,13 @@ function build_django () {
 	sleep 5
 	echo "Waiting django to start"
 	container_id=$(get_container_id django)
-	while [ "$(docker_exec $container_id ps | grep gunicorn | grep -v grep | grep -v pip)" = "" ]; do
+	while [ ! -f "src/django_env" ]; do
 		sleep 1
 	done
 
 	# Need to build and start django to understand whatelse is needed
 	load_django_env
+
 	docker stop $container_id
 
 }

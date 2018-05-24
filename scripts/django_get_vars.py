@@ -1,4 +1,5 @@
 from django.conf import settings
+import os
 
 def get_broker():
 	dir_settings = dir(settings)
@@ -61,22 +62,21 @@ def get_database():
 
 def format_dict(d):
 	result = []
-	integers = [
-		'BROKER_PORT',
-		'DB_HOST',
-	]
 	for k in d:
-		if k in integers:
-			result.append("{0}={1}\n".format(k, d[k]))
-		else:
-			result.append("{0}='{1}'\n".format(k, d[k]))
+		result.append("{0}='{1}'\n".format(k, d[k]))
 	return result	
 
-output = [ "{0}='{1}'\n".format('STATIC_URL', settings.STATIC_URL), "{0}='{1}'\n".format('STATIC_ROOT', settings.STATIC_ROOT) ]	
+defaults = {
+	'STATIC_URL': settings.STATIC_URL,
+	'STATIC_ROOT': settings.STATIC_ROOT,
+	'DJANGO_SETTINGS_MODULE': os.environ.get("DJANGO_SETTINGS_MODULE"),
+	'DJANGO_WSGI': os.environ.get("DJANGO_SETTINGS_MODULE").replace("settings", "wsgi"),
+}
 
 broker = get_broker()
 db = get_database()
 
+output = format_dict(defaults)
 output += format_dict(broker)
 output += format_dict(db)
 
