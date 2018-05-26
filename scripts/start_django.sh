@@ -1,24 +1,22 @@
 #!/bin/sh
 set -ix
 
-. /.env
-if [ -f "/src/django_env" ]; then
-	. /src/django_env
-fi
-
+. /env/docker_django
 . /venv/bin/activate
 
 cd /src/
 git clone $GIT_REPO . || git pull .
 
+if [ ! -z "$GIT_POSTEXEC" ]; then
+	$GIT_POSTEXEC
+fi
+
 if [ -f "$PIP_REQUIREMENTS" ]; then
        pip install -r $PIP_REQUIREMENTS 
 fi
 
-if [ ! -f "/src/django_env" ]; then
-	/scripts/django_get_vars.sh
-	. /src/django_env
-fi
+python /src/$DJANGO_ROOT/manage.py shell < /scripts/django_get_vars.py
+. /env/docker_django
 
 if [ "$ADD_ALLOWED_HOSTS" = "1" ] && [ ! -z "$DJANGO_SETTINGS_MODULE" ] && [ ! -f "/src/added_allowed_hosts" ]; then
         settings_relative=$( echo $DJANGO_SETTINGS_MODULE | sed 's/\./\//g' )
@@ -42,7 +40,7 @@ __EOF__
 fi
 
 
-
+touch /src/docker_django_built
 cd /src/$DJANGO_ROOT
 python manage.py migrate
 python manage.py collectstatic  --noinput

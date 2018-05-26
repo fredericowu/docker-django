@@ -2,6 +2,8 @@
 Create the infrastructure needed by you django project in docker.
 
 ### Basic Usage
-1. First run `make build` inside root directory.
-2. Then run `make start` to start up the project for first time.
+1. Configure your env in ./env/docker_django, you can pick an example:
+```cp -a ./env/docker_django.cognitivo ./env/docker_django```
+2. First run `make build` inside root directory.
+3. Then run `make start` to start up the project for first time.
 

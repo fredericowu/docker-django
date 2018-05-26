@@ -1,7 +1,10 @@
 from django.conf import settings
 import os
 
+
 def get_broker():
+	# uhn?
+	from django.conf import settings
 	dir_settings = dir(settings)
 	celery_vars = [
 		'CELERY_BROKER_URL',
@@ -56,6 +59,8 @@ def get_database():
 			result[result_key] = db[key]
 		else:
 			result[result_key] = ''
+	if result['DB_PORT'] == '':
+		result['DB_PORT'] = '0'
 	result['DB_ENGINE'] = result['DB_ENGINE'].split(".")[-1]
 	return result
 
@@ -63,8 +68,9 @@ def get_database():
 def format_dict(d):
 	result = []
 	for k in d:
-		result.append("{0}='{1}'\n".format(k, d[k]))
+		result.append("{0}={1}\n".format(k, d[k]))
 	return result	
+
 
 defaults = {
 	'STATIC_URL': settings.STATIC_URL,
@@ -76,12 +82,30 @@ defaults = {
 broker = get_broker()
 db = get_database()
 
-output = format_dict(defaults)
-output += format_dict(broker)
-output += format_dict(db)
+output_env = dict(list(defaults.items()) + list(broker.items()) + list(db.items()))
+
+output = []
+with open("/env/docker_django") as f:
+	for line in f.readlines():
+		line = line.replace("\n", "")
+		line = line.replace("\r", "")
+		try:
+			k,v = line.split("=", 1)		
+		except:
+			k = None
+			v = None
+		if k in output_env:
+			v = v.replace("'", "")
+			v = v.replace('"', "")
+			if v in ("", "0"):
+				continue
+			else:
+				del output_env[k]			
+		output.append("{0}\n".format(line))
 
 
-with open("/src/django_env", "w") as f:
+output += format_dict(output_env)
+with open("/env/docker_django", "w") as f:
 	for o in output:
 		f.write(o)
 

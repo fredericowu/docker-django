@@ -1,9 +1,4 @@
 #!/bin/bash
-. .env
-if [ -f "src/django_env" ]; then
-	. src/django_env
-fi
-
 function dockers_up() {
 
 	if [ ! -z "$BROKER_PROTOCOL" ]; then
@@ -78,9 +73,7 @@ __EOF__
 
 
 function change_env() {
-	cat .env | grep -v "^$1\=" > .env.new
-	echo "$1=$2" >> .env.new
-        mv .env.new .env
+	sed -i 's/^'$1'=.*$/'$1'='$2'/' env/docker_django
 }
 
 function build_broker() {
@@ -93,18 +86,28 @@ function build_broker() {
 }
 
 function load_django_env() {
-	. src/django_env
+	. env/docker_django
 }
 
 
 function build_django () {
+	rm -f src/docker_django_built
+
 	docker-compose build
 	yes | docker-compose up -d django
-	sleep 5
+
 	echo "Waiting django to start"
+	sleep 5
+
 	container_id=$(get_container_id django)
-	while [ ! -f "src/django_env" ]; do
-		sleep 1
+	while [ ! -f "src/docker_django_built" ]; do
+		container_id=$(get_container_id django)
+		if [ -z "$container_id" ]; then
+			echo "Build failed :("
+			return 1
+		fi
+
+		sleep 3
 	done
 
 	# Need to build and start django to understand whatelse is needed
@@ -171,24 +174,54 @@ function dockers_stop() {
 
 }
 
-case "$1" in
-	up)
-		dockers_up;
-	;;
 
-	start)
-		dockers_up;
-	;;
+function clean() {
+	dockers_stop 2> /dev/null
+	# TODO: dockers rm images
 
-	stop)
-		dockers_stop;
-	;;
+	rm -rf src
 
-	build)
-		build;
-	;;
+}
 
-	*)
-		echo "Command not recognized"
-	;;
-esac
+function main () {
+	if [ ! -f "env/docker_django" ]; then
+		echo "You need to create './env/docker_django' try to pick one example from the directory ./env/"
+		exit 1
+	fi
+
+	
+	ln -sf  env/docker_django .env
+	load_django_env
+
+
+	case "$1" in
+		up)
+			dockers_up
+		;;
+
+		start)
+			dockers_up
+		;;
+
+		stop)
+			dockers_stop
+		;;
+
+		build)
+			build
+		;;
+
+		clean)
+			clean
+		;;
+
+
+		*)
+			echo "Command not recognized"
+		;;
+	esac
+
+}
+
+
+main $@

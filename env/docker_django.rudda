@@ -1,0 +1,17 @@
+GIT_REPO="https://github.com/ruddra/docker-django"
+GIT_POSTEXEC="sed -i s/==2.6.2// src/requirements.pip"
+PIP_REQUIREMENTS="src/requirements.pip"
+ADD_ALLOWED_HOSTS=1
+# Path to Django project root where manage.py is located
+DJANGO_ROOT="src"
+# DOT path to gunicorn
+DJANGO_WSGI="mydjango.wsgi"
+LISTEN_IP="0.0.0.0"
+LISTEN_PORT=7778
+APK_ADD=""
+DB_PORT=0
+DB_PASSWORD=
+DB_USER=
+DB_NAME=
+DB_HOST=
+BROKER_PORT=0

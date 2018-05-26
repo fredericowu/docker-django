@@ -22,6 +22,7 @@ services:
     volumes:
       - ./src:/src
       - ./nginx_config:/nginx_config
+      - ./env:/env
     expose:
       - "${LISTEN_PORT}"
   broker-redis:
