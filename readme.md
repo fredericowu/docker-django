@@ -2,7 +2,11 @@
 Create the infrastructure needed by you django project in docker.
 
 ### Clone Repository
-```git clone https://github.com/fredericowu/docker-django```
+```
+git clone https://github.com/fredericowu/docker-django
+cd docker-django
+```
+
 
 ### Basic Usage
 1. Configure your env in ./env/docker_django, you can pick an example:
