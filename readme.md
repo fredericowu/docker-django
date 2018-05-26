@@ -9,8 +9,13 @@ cd docker-django
 
 
 ### Basic Usage
-1. Configure your env in ./env/docker_django, you can pick an example:
-```cp -a ./env/docker_django.cognitivo ./env/docker_django```
-2. First run `make build` inside root directory.
-3. Then run `make start` to start up the project for first time.
+1. Configure you environment with a git repository:
+```sh
+./config.sh https://github.com/fredericowu/docker-django cognitivo
+```
+2. Check your environment configuration by editing env/docker_django
+3. Run build and start.
+```sh
+make build && make start
+```
 

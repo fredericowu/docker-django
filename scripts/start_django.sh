@@ -8,7 +8,7 @@ cd /src/
 git clone $GIT_REPO . || git pull .
 
 if [ ! -z "$GIT_POSTEXEC" ]; then
-	$GIT_POSTEXEC
+	sh -c "$GIT_POSTEXEC"
 fi
 
 if [ -f "$PIP_REQUIREMENTS" ]; then
@@ -18,11 +18,11 @@ fi
 python /src/$DJANGO_ROOT/manage.py shell < /scripts/django_get_vars.py
 . /env/docker_django
 
-if [ "$ADD_ALLOWED_HOSTS" = "1" ] && [ ! -z "$DJANGO_SETTINGS_MODULE" ] && [ ! -f "/src/added_allowed_hosts" ]; then
+if [ "$ADD_ALLOWED_HOSTS" = "1" ] && [ ! -z "$DJANGO_SETTINGS_MODULE" ] && [ ! -f "/run/added_allowed_hosts" ]; then
         settings_relative=$( echo $DJANGO_SETTINGS_MODULE | sed 's/\./\//g' )
         settings_path="/src/"$DJANGO_ROOT"/"$settings_relative".py"
 
-        echo $settings_path > /src/added_allowed_hosts
+        echo $settings_path > /run/added_allowed_hosts
 
         cat >> $settings_path << __EOF__
 
@@ -40,7 +40,7 @@ __EOF__
 fi
 
 
-touch /src/docker_django_built
+touch /run/docker_django_built
 cd /src/$DJANGO_ROOT
 python manage.py migrate
 python manage.py collectstatic  --noinput

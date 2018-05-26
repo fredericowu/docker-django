@@ -21,6 +21,7 @@ services:
       - django
     volumes:
       - ./src:/src
+      - ./run:/run
       - ./nginx_config:/nginx_config
       - ./env:/env
     expose:

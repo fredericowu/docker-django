@@ -26,6 +26,10 @@ function dockers_up() {
 	docker-compose up -d nginx
 	docker-compose up -d django
 
+	echo -e "\n\n\n\n#########################################"
+	echo "Running on: http://$LISTEN_IP:$LISTEN_PORT"
+	echo -e "#########################################\n\n\n\n"
+
 }
 
 function get_container_id() {
@@ -91,7 +95,7 @@ function load_django_env() {
 
 
 function build_django () {
-	rm -f src/docker_django_built
+	rm -f run/docker_django_built
 
 	docker-compose build
 	yes | docker-compose up -d django
@@ -100,7 +104,7 @@ function build_django () {
 	sleep 5
 
 	container_id=$(get_container_id django)
-	while [ ! -f "src/docker_django_built" ]; do
+	while [ ! -f "run/docker_django_built" ]; do
 		container_id=$(get_container_id django)
 		if [ -z "$container_id" ]; then
 			echo "Build failed :("
@@ -167,21 +171,88 @@ function dockers_stop() {
 	echo "Stopping django..."
 	docker stop $(get_container_id django)
 
-	if [ ! -z "$BROKER_PROTOCOL" ]; then
-		echo "Stopping message broker..."
-		docker stop $(get_container_id broker-$BROKER_PROTOCOL)
-	fi
+	echo "Stopping broker..."
+	docker stop $(get_container_id broker-redis) 
+
+	echo "Stopping database..."
+        docker stop $(get_container_id db-postgres)
 
 }
 
 
 function clean() {
 	dockers_stop 2> /dev/null
-	# TODO: dockers rm images
+	rm -rf run
+	mkdir run
 
 	rm -rf src
+	mkdir src
+	# TODO: dockers rm images
 
 }
+
+
+function write_env() {
+        cat > env/docker_django << __EOF__
+
+GIT_REPO="$GIT_REPO"
+GIT_POSTEXEC="$GIT_POSTEXEC"
+PIP_REQUIREMENTS="$PIP_REQUIREMENTS"
+# Path to Django project root where manage.py is located
+DJANGO_ROOT="$DJANGO_ROOT"
+# DOT path to gunicorn
+DJANGO_WSGI="$DJANGO_WSGI"
+LISTEN_IP="0.0.0.0"
+LISTEN_PORT=$LISTEN_PORT
+ADD_ALLOWED_HOSTS=1
+APK_ADD=""
+DB_PORT=0
+DB_PASSWORD=
+DB_USER=
+DB_NAME=
+DB_HOST=
+BROKER_PORT=0
+
+__EOF__
+
+
+}
+
+
+function config () {
+	if [ -z "$LISTEN_PORT" ]; then
+		LISTEN_PORT=7778
+	fi
+
+	echo "Cleaning..."
+        clean > /dev/null 2>&1
+        mkdir -p src
+        git clone $GIT_REPO src > /dev/null 2>&1
+        cd src
+
+        PIP_REQUIREMENTS=$(find -type f -name '*requirements*' | head -1  | sed 's/\.\///')
+        DJANGO_ROOT=$(find -name manage.py | head -1 | awk -F\/ '{ print $2 }')
+        DJANGO_WSGI=$(find -name wsgi.py  | sed 's/\.\/'$DJANGO_ROOT'\/*//' | sed 's/\//\./g' | sed 's/\.py$//')
+        GIT_POSTEXEC=""
+        if [ -f "setup.py" ]; then
+                GIT_POSTEXEC=$GIT_POSTEXEC" python setup.py install;"
+        fi
+
+        if [ ! -z "$PIP_REQUIREMENTS" ]; then
+                if [ "$(grep 'psycopg2==2.6.2' $PIP_REQUIREMENTS)" != "" ]; then
+                        GIT_POSTEXEC=$GIT_POSTEXEC" sed -i s/psycopg2==2.6.2/psycopg2/ $PIP_REQUIREMENTS;"
+                fi
+
+        fi
+
+        cd ..
+        write_env
+
+	echo -e "Please check 'env/docker_django' before executing:\n\n"
+	echo -e "make build && make start\n\n"
+
+}
+
 
 function main () {
 	if [ ! -f "env/docker_django" ]; then
@@ -189,7 +260,7 @@ function main () {
 		exit 1
 	fi
 
-	
+	mkdir -p run	
 	ln -sf  env/docker_django .env
 	load_django_env
 
@@ -215,6 +286,12 @@ function main () {
 			clean
 		;;
 
+		config)
+			GIT_REPO=$2
+			LISTEN_PORT=$3
+
+			config
+		;;
 
 		*)
 			echo "Command not recognized"
