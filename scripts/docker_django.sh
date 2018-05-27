@@ -11,9 +11,13 @@ function dockers_up() {
                 		DB_SERVER="postgres"
 		        ;;
 
+			mysql)
+				DB_SERVER="mysql"
+			;;
+
+
 			*)
 				DB_SERVER=""
-
 			;;
 		esac
 
@@ -98,10 +102,10 @@ function build_django () {
 	rm -f run/docker_django_built
 
 	docker-compose build
-	yes | docker-compose up -d django
+	yes  | dockers_up > /dev/null 2>&1
 
 	echo "Waiting django to start"
-	sleep 5
+	sleep 10
 
 	container_id=$(get_container_id django)
 	while [ ! -f "run/docker_django_built" ]; do
@@ -117,11 +121,12 @@ function build_django () {
 	# Need to build and start django to understand whatelse is needed
 	load_django_env
 
-	docker stop $container_id
+#	docker stop $container_id
+	dockers_stop > /dev/null 2>&1
 
 }
 
-function build_postgres () {
+function build_database () {
 	if [ -z "$DB_PORT" ]; then
 		DB_PORT=0
 	fi
@@ -133,9 +138,10 @@ function build_postgres () {
 	change_env DB_HOST $DB_HOST
 }
 
+
 function build_empty () {
         build_broker
-        build_postgres
+        build_database
 }
 
 function build () {
@@ -151,8 +157,8 @@ function build () {
 
         if [ ! -z "$DB_ENGINE" ]; then
                 case "$DB_ENGINE" in
-                        postgresql_psycopg2)
-                                build_postgres
+                        postgresql_psycopg2|mysql)
+                                build_database
                         ;;
 
                         *)
@@ -176,12 +182,13 @@ function dockers_stop() {
 
 	echo "Stopping database..."
         docker stop $(get_container_id db-postgres)
+        docker stop $(get_container_id db-mysql)
 
 }
 
 
 function clean() {
-	dockers_stop 2> /dev/null
+	dockers_stop 2> /dev/null 
 	rm -rf run
 	mkdir run
 
@@ -191,7 +198,7 @@ function clean() {
 
 }
 
-
+# TODO: Generate a SECRET_KEY
 function write_env() {
         cat > env/docker_django << __EOF__
 
@@ -212,6 +219,7 @@ DB_USER=
 DB_NAME=
 DB_HOST=
 BROKER_PORT=0
+SECRET_KEY='+b^b8\$tod3je_f85xb_35rvd)cabazmk@)i1-0*r!\$cy6p646@'
 
 __EOF__
 
@@ -231,19 +239,33 @@ function config () {
         cd src
 
         PIP_REQUIREMENTS=$(find -type f -name '*requirements*' | head -1  | sed 's/\.\///')
-        DJANGO_ROOT=$(find -name manage.py | head -1 | awk -F\/ '{ print $2 }')
+        DJANGO_ROOT=$(find -name manage.py | head -1 | sed 's/\/manage\.py//' | sed 's/\.\///')
         DJANGO_WSGI=$(find -name wsgi.py  | sed 's/\.\/'$DJANGO_ROOT'\/*//' | sed 's/\//\./g' | sed 's/\.py$//')
         GIT_POSTEXEC=""
         if [ -f "setup.py" ]; then
                 GIT_POSTEXEC=$GIT_POSTEXEC" python setup.py install;"
         fi
 
+	# Requirements adjustements: we shouldn't do it. 
+	# TODO: suggest
         if [ ! -z "$PIP_REQUIREMENTS" ]; then
                 if [ "$(grep 'psycopg2==2.6.2' $PIP_REQUIREMENTS)" != "" ]; then
                         GIT_POSTEXEC=$GIT_POSTEXEC" sed -i s/psycopg2==2.6.2/psycopg2/ $PIP_REQUIREMENTS;"
                 fi
-
+                if [ "$(grep 'MySQL-python' $PIP_REQUIREMENTS)" != "" ]; then
+ 			# Python3 support
+                       GIT_POSTEXEC=$GIT_POSTEXEC" sed -i s/MySQL-python*$/mysqlclient/ $PIP_REQUIREMENTS;"
+                fi
         fi
+
+	find -name settings.py | while read settings; do
+		echo $settings
+		if [ "$(grep SECRET_KEY $settings)" = "" ]; then
+			GIT_POSTEXEC=$GIT_POSTEXEC" echo SECRET_KEY = '$SECRET_KEY' >> $settings;"
+
+			echo "aqui $GIT_POSTEXEC"
+		fi
+	done
 
         cd ..
         write_env

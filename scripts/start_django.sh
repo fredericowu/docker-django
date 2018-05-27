@@ -18,12 +18,11 @@ fi
 python /src/$DJANGO_ROOT/manage.py shell < /scripts/django_get_vars.py
 . /env/docker_django
 
+settings_relative=$( echo $DJANGO_SETTINGS_MODULE | sed 's/\./\//g' )
+settings_path="/src/"$DJANGO_ROOT"/"$settings_relative".py"
+
 if [ "$ADD_ALLOWED_HOSTS" = "1" ] && [ ! -z "$DJANGO_SETTINGS_MODULE" ] && [ ! -f "/run/added_allowed_hosts" ]; then
-        settings_relative=$( echo $DJANGO_SETTINGS_MODULE | sed 's/\./\//g' )
-        settings_path="/src/"$DJANGO_ROOT"/"$settings_relative".py"
-
         echo $settings_path > /run/added_allowed_hosts
-
         cat >> $settings_path << __EOF__
 
 
@@ -39,6 +38,14 @@ __EOF__
 
 fi
 
+if [ ! -z "$DB_HOST" ]; then
+	echo "Waiting database to start $DB_HOST:$DB_PORT ..."
+	for i in $(seq 1 10); do
+		nc -z $DB_HOST $DB_PORT && break
+		sleep 5
+	done
+	echo "Waiting finished..."
+fi
 
 touch /run/docker_django_built
 cd /src/$DJANGO_ROOT

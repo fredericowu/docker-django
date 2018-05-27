@@ -39,10 +39,13 @@ def get_broker():
 
 
 def get_database():
+	# uhn?
+	from django.conf import settings
 	try:
 		# TODO: Support many
 		db = settings.DATABASES['default']
 	except:
+		raise
 		db = {}
 	keys = [
 		'ENGINE',
@@ -60,7 +63,12 @@ def get_database():
 		else:
 			result[result_key] = ''
 	if result['DB_PORT'] == '':
-		result['DB_PORT'] = '0'
+		if 'mysql' in result['DB_ENGINE']:
+			result['DB_PORT'] = '3306'
+		elif 'postgresql' in result['DB_ENGINE']:
+			result['DB_PORT'] = '5432'
+		else:
+			result['DB_PORT'] = '0'
 	result['DB_ENGINE'] = result['DB_ENGINE'].split(".")[-1]
 	return result
 
