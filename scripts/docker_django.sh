@@ -238,9 +238,9 @@ function config () {
         git clone $GIT_REPO src > /dev/null 2>&1
         cd src
 
-        PIP_REQUIREMENTS=$(find -type f -name '*requirements*' | head -1  | sed 's/\.\///')
-        DJANGO_ROOT=$(find -name manage.py | head -1 | sed 's/\/manage\.py//' | sed 's/\.\///')
-        DJANGO_WSGI=$(find -name wsgi.py  | sed 's/\.\/'$DJANGO_ROOT'\/*//' | sed 's/\//\./g' | sed 's/\.py$//')
+        PIP_REQUIREMENTS=$(find . -type f -name '*requirements*' | head -1  | sed 's/\.\///')
+        DJANGO_ROOT=$(find . -name manage.py | head -1 | sed 's/\/manage\.py//' | sed 's/\.\///')
+        DJANGO_WSGI=$(find . -name wsgi.py  | sed 's/\.\/'$DJANGO_ROOT'\/*//' | sed 's/\//\./g' | sed 's/\.py$//')
         GIT_POSTEXEC=""
         if [ -f "setup.py" ]; then
                 GIT_POSTEXEC=$GIT_POSTEXEC" python setup.py install;"
@@ -258,8 +258,7 @@ function config () {
                 fi
         fi
 
-	find -name settings.py | while read settings; do
-		echo $settings
+	find . -name settings.py | while read settings; do
 		if [ "$(grep SECRET_KEY $settings)" = "" ]; then
 			GIT_POSTEXEC=$GIT_POSTEXEC" echo SECRET_KEY = '$SECRET_KEY' >> $settings;"
 
@@ -275,36 +274,43 @@ function config () {
 
 }
 
+function check_env () {
+	if [ ! -f "env/docker_django" ]; then
+		echo "You need to create './env/docker_django' try to pick one example from the directory ./env/ or use:"
+		echo "./config.sh"
+		exit 1
+	else
+		load_django_env
+	fi
+}
 
 function main () {
-	if [ ! -f "env/docker_django" ]; then
-		echo "You need to create './env/docker_django' try to pick one example from the directory ./env/"
-		exit 1
-	fi
-
 	mkdir -p run	
 	ln -sf  env/docker_django .env
-	load_django_env
-
 
 	case "$1" in
 		up)
+			check_env
 			dockers_up
 		;;
 
 		start)
+			check_env
 			dockers_up
 		;;
 
 		stop)
+			check_env
 			dockers_stop
 		;;
 
 		build)
+			check_env
 			build
 		;;
 
 		clean)
+			check_env
 			clean
 		;;
 
